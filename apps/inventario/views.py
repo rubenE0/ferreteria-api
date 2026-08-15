@@ -1,7 +1,7 @@
 from rest_framework import viewsets, status
 from rest_framework.views import APIView
 from rest_framework.response import Response
-from rest_framework.permissions import IsAuthenticated, AllowAny
+from rest_framework.permissions import IsAuthenticated, IsAuthenticatedOrReadOnly
 from django.contrib.auth.models import User
 from django.db.models import Sum, Count
 from .models import Producto, Categoria, Marca
@@ -21,7 +21,7 @@ class MarcaViewSet(viewsets.ModelViewSet):
 class ProductoViewSet(viewsets.ModelViewSet):
     queryset = Producto.objects.all()
     serializer_class = ProductoSerializer
-    permission_classes = [IsAuthenticated]
+    permission_classes = [IsAuthenticatedOrReadOnly]
 
 class ResumenPorMarcaView(APIView):
     permission_classes = [IsAuthenticated]
@@ -39,8 +39,7 @@ class ResumenPorMarcaView(APIView):
         return Response(resumen)
 
 class RegistroUsuarioView(APIView):
-    permission_classes = [AllowAny]
-
+    permission_classes = [IsAuthenticatedOrReadOnly]
     def post(self, request):
         username = request.data.get('username')
         password = request.data.get('password')
