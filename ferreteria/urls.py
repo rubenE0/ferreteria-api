@@ -24,6 +24,8 @@ from rest_framework_simplejwt.views import (
 from apps.inventario.views import RegistroUsuarioView
 
 urlpatterns = [
+    path('admin/', admin.site.urls),
+    path('api/inventario/', include('apps.inventario.urls')),
     path('api/register/', RegistroUsuarioView.as_view(), name='api_register'),
     path('api/token/', TokenObtainPairView.as_view(), name='token_obtain_pair'),       
     path('api/token/refresh/', TokenRefreshView.as_view(), name='token_refresh'),     
