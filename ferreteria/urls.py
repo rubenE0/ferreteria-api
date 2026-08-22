@@ -21,7 +21,9 @@ from rest_framework_simplejwt.views import (
     TokenRefreshView,
     TokenBlacklistView,
 )
-from apps.inventario.views import RegistroUsuarioView
+
+from apps.inventario.registro import RegistroUsuarioView
+#from apps.inventario.views import RegistroUsuarioView
 
 urlpatterns = [
     path('admin/', admin.site.urls),

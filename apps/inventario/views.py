@@ -1,11 +1,11 @@
 from rest_framework import viewsets, status
 from rest_framework.views import APIView
 from rest_framework.response import Response
-from rest_framework.permissions import AllowAny, IsAuthenticated, IsAuthenticatedOrReadOnly
-from django.contrib.auth.models import User
+from rest_framework.permissions import IsAuthenticated
 from django.db.models import Sum, Count
 from .models import Producto, Categoria, Marca
 from .serializers import ProductoSerializer, CategoriaSerializer, MarcaSerializer
+from .services_ia import consultar_asistente_inventario
 
 # Create your views here.
 class CategoriaViewSet(viewsets.ModelViewSet):
@@ -21,12 +21,12 @@ class MarcaViewSet(viewsets.ModelViewSet):
 class ProductoViewSet(viewsets.ModelViewSet):
     queryset = Producto.objects.all()
     serializer_class = ProductoSerializer
-    permission_classes = [IsAuthenticatedOrReadOnly]
+    permission_classes = [IsAuthenticated]
 
 class ResumenPorMarcaView(APIView):
     permission_classes = [IsAuthenticated]
     def get(self, request):
-        resumen = Marca.objects.annotate(
+        resumen = list(Marca.objects.annotate(
             variedad_productos=Count('productos'),
             total_unidades=Sum('productos__stock_actual')
         ).values(
@@ -34,25 +34,51 @@ class ResumenPorMarcaView(APIView):
             'nombre',
             'variedad_productos',
             'total_unidades'
-        )
+        ))
+
+        for n in resumen:
+            if n['total_unidades'] is None:
+                n['total_unidades'] = 0
 
         return Response(resumen)
 
-class RegistroUsuarioView(APIView):
-    permission_classes = [AllowAny]
+class RealizarCompraView(APIView):
+    permission_classes = [IsAuthenticated]
+
     def post(self, request):
-        username = request.data.get('username')
-        password = request.data.get('password')
+        producto_id = request.data.get('producto_id')
+        cantidad = int(request.data.get('cantidad', 1))
 
-        if not username or not password:
-            return Response({'error': 'Debes enviar un "username" y un "password".'}, status=status.HTTP_400_BAD_REQUEST)
+        if not producto_id or not cantidad:
+            return Response({'error': 'Producto y cantidad requeridos.'}, status=status.HTTP_400_BAD_REQUEST)
 
-        if User.objects.filter(username=username).exists():
-            return Response({'error': 'Ese nombre de usuario ya esta registrado.'}, status=status.HTTP_400_BAD_REQUEST)
+        try:
+            producto = Producto.objects.get(id=producto_id)
+        except Producto.DoesNotExist:
+            return Response({'error': 'Producto no encontrado.'}, status=status.HTTP_404_NOT_FOUND)
 
-        user = User.objects.create_user(username=username, password=password)
+        if producto.stock_actual < cantidad:
+            return Response({f"error: Stock insuficiente. Disponible: {producto.stock_actual}"}, status=status.HTTP_400_BAD_REQUEST)
+
+        producto.stock_actual -= cantidad
+        producto.save()
+
+        return Response({'mensaje': 'Compra realizada exitosamente.',
+                         'producto': producto.nombre,
+                         'cantidad': cantidad,
+                         'stock_restante': producto.stock_actual
+                         }, status=status.HTTP_200_OK)
+
+class AsistenteIAView(APIView):
+    permission_classes = [IsAuthenticated]
+
+    def post(self, request):
+        pregunta = request.data.get('pregunta', '')
+
+        if not pregunta:
+            return Response({'error': 'Debes enviar una "pregunta".'}, status=status.HTTP_400_BAD_REQUEST)
+
+        resultado = consultar_asistente_inventario(pregunta)
         return Response({
-            'mensaje': f'Usuario {user.username} creado exitosamente.',
-            'id': user.id,
-            'username': user.username
-        }, status=status.HTTP_201_CREATED)
+            'Pregunta': pregunta,
+            'Respuesta': resultado}, status=status.HTTP_200_OK)
