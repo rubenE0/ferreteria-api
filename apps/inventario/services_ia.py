@@ -1,17 +1,26 @@
 import requests
-from .models import Producto
+from .models import Producto, Marca, Categoria
 
 def consultar_asistente_inventario(pregunta_usuario):
 
     productos = Producto.objects.all()
+    marcas = Marca.objects.all()
+    categorias = Categoria.objects.all()
 
     if not productos.exists():
         return "No hay productos en el inventario."
 
-    inf_inventario = []
+    inf_productos = []
+    inf_marcas = []
+    inf_categorias = []
     for p in productos:
-        inf_inventario.append(f"Producto: {p.nombre}| Stock: {p.stock_actual}, Stock Minimo: {p.stock_minimo}, Precio: {p.precio}")
-    contexto_inventario = "\n".join(inf_inventario)
+        inf_productos.append(f"Producto: {p.nombre}| Stock: {p.stock_actual}, Stock Minimo: {p.stock_minimo}, Precio: {p.precio}")
+    for m in marcas:
+        inf_marcas.append(f"Marca: {m.nombre}")
+    for c in categorias:
+        inf_categorias.append(f"Categoria: {c.nombre}")
+
+    contexto_inventario = "\n".join(inf_productos + inf_marcas + inf_categorias)
 
 
     prompt_ia = f"""

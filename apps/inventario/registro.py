@@ -19,5 +19,8 @@ class RegistroUsuarioView(APIView):
             
         User.objects.create_user(username=username, password=password)
         return Response({
-            'mensaje': 'Usuario registrado exitosamente.'
+            'mensaje': 'Usuario registrado exitosamente.',
+            'nombre_usuario': username,
+            'contraseña': password,
+
         }, status=status.HTTP_201_CREATED)
