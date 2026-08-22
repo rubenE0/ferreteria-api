@@ -3,7 +3,6 @@ from rest_framework.response import Response
 from rest_framework import status
 from rest_framework.permissions import AllowAny
 from django.contrib.auth.models import User
-from rest_framework_simplejwt.tokens import RefreshToken
 
 class RegistroUsuarioView(APIView):
     permission_classes = [AllowAny]
@@ -19,11 +18,6 @@ class RegistroUsuarioView(APIView):
             return Response({'error': 'El usuario ya existe.'}, status=status.HTTP_400_BAD_REQUEST)
             
         User.objects.create_user(username=username, password=password)
-
-        refresh = RefreshToken.for_user(User.objects.get(username=username))
-
         return Response({
-            'mensaje': 'Usuario registrado exitosamente.',
-            'refresh': str(refresh),
-            'access': str(refresh.access_token)
+            'mensaje': 'Usuario registrado exitosamente.'
         }, status=status.HTTP_201_CREATED)
